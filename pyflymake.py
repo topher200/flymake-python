@@ -265,8 +265,13 @@ class TestRunner(LintRunner):
 
 
 def find_config(path, trigger_type):
+    """Recursively looks for config file ('.pyflymakerc') in path.
+
+    Returns None if the file isn't found.
+    """
     if path in ('', '/'):
-        module = DefaultConfig()
+        # We've reached our base case- never found the file.
+        return None
     else:
         try:
             parent_dir = os.path.join(path, '.pyflymakerc')
@@ -333,7 +338,14 @@ def main():
         level=options.debug and logging.DEBUG or logging.WARNING,
         format='%(levelname)-8s %(message)s')
 
+    # Look for the config file in the path of the file we're working on.
     config = find_config(os.path.realpath(args[0]), options.trigger_type)
+    if not config:
+        # Ok, let's try the path of this file (pyflymake.py)
+        config = find_config(os.path.abspath(__file__), options.trigger_type)
+    if not config:
+        # Still can't find a config. Screw it- just use the default.
+        config = DefaultConfig()
     for key, value in DEFAULT_CONFIG.items():
         if not hasattr(config, key):
             setattr(config, key, value)
